@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=320, initial-scale=1">
+  <title>Yandex.RTB R-A-14383531-11</title>
+  <style>
+    html,body{margin:0;padding:0;background:#fff}
+    .wrap{width:320px;height:250px;margin:0 auto;box-sizing:border-box;overflow:hidden}
+    #yandex_rtb_R-A-14383531-11{width:100%;height:100%}
+    #fallback{display:none;align-items:center;justify-content:center;width:320px;height:250px;font:14px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Arial}
+    .show{display:flex}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Контейнер RTB -->
+    <div id="yandex_rtb_R-A-14383531-11"></div>
+    <!-- Фолбэк, если реклама не загрузилась после нескольких попыток -->
+    <div id="fallback">Реклама недоступна</div>
+  </div>
+
+  <script>
+  (function(){
+    // Настройки
+    const BLOCK_ID = "R-A-14383531-11";
+    const RENDER_TO = "yandex_rtb_R-A-14383531-11";
+    const CONTEXT_SRC = "https://yandex.ru/ads/system/context.js";
+    const MAX_TRIES = 3;         // Сколько раз пробуем
+    const RENDER_TIMEOUT = 2500; // мс ожидания между попытками
+
+    let tries = 0;
+    let rendered = false;
+
+    // Готовим очередь колбэков до подключения SDK
+    window.yaContextCb = window.yaContextCb || [];
+
+    // Наблюдатель — как только сеть что-то отрисует в контейнере, считаем успехом
+    const slot = document.getElementById(RENDER_TO);
+    const mo = new MutationObserver(() => {
+      if (slot && slot.children.length > 0) {
+        rendered = true;
+        mo.disconnect();
+      }
+    });
+    mo.observe(slot, { childList: true, subtree: true });
+
+    function showFallback(){
+      document.getElementById('fallback').classList.add('show');
+    }
+
+    function injectSdk(){
+      // Удаляем старый <script>, если был
+      const old = document.getElementById("ya-context-sdk");
+      if (old) old.remove();
+
+      const s = document.createElement("script");
+      s.id = "ya-context-sdk";
+      s.src = CONTEXT_SRC + "?v=" + Date.now(); // лёгкий кеш-бастинг
+      s.async = true;
+      s.onerror = onTryFail;
+      document.head.appendChild(s);
+    }
+
+    function renderOnce(){
+      try {
+        if (window.Ya && window.Ya.Context && window.Ya.Context.AdvManager) {
+          window.Ya.Context.AdvManager.render({
+            blockId: BLOCK_ID,
+            renderTo: RENDER_TO
+          });
+          // Проверим через таймер, вдруг SDK отработал, но ничего не вывел
+          setTimeout(() => {
+            if (!rendered) onTryFail();
+          }, RENDER_TIMEOUT);
+        } else {
+          // Если объектов ещё нет, поставим через очередь SDK
+          window.yaContextCb.push(() => {
+            try {
+              window.Ya.Context.AdvManager.render({ blockId: BLOCK_ID, renderTo: RENDER_TO });
+              setTimeout(() => { if (!rendered) onTryFail(); }, RENDER_TIMEOUT);
+            } catch(e) {
+              onTryFail();
+            }
+          });
+        }
+      } catch(e) {
+        onTryFail();
+      }
+    }
+
+    function onTryFail(){
+      if (rendered) return;
+      if (++tries < MAX_TRIES) {
+        // Повтор: заново подключим SDK и попробуем отрисовать
+        injectSdk();
+        // Небольшая задержка перед попыткой рендера
+        setTimeout(renderOnce, 200);
+      } else {
+        showFallback();
+      }
+    }
+
+    function start(){
+      // Первая попытка
+      injectSdk();
+      setTimeout(renderOnce, 200);
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", start, { once:true });
+    } else {
+      start();
+    }
+  })();
+  </script>
+</body>
+</html>
