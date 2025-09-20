@@ -2,22 +2,67 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
+  <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=320, initial-scale=1">
   <title>onclicka 6064015 (320×250)</title>
   <style>
     html,body{margin:0;padding:0;background:#fff}
     .wrap{width:320px;height:250px;margin:0 auto;box-sizing:border-box;overflow:hidden}
     [data-banner-id]{width:100%;height:100%}
+    .hidden{display:none}
   </style>
 </head>
 <body>
   <div class="wrap">
     <div data-banner-id="6064015"></div>
+    <div id="fallback" class="hidden" style="width:320px;height:250px;display:flex;align-items:center;justify-content:center;font:14px/1.2 system-ui;">
+      Реклама недоступна
+    </div>
   </div>
 
-  <!-- Код сети -->
-  <script async src="https://js.onclckmn.com/static/onclicka.js" data-admpid="307391"></script>
+  <script>
+    (function(){
+      const SRC = "https://js.onclckmn.com/static/onclicka.js";
+      const ATTR = { "data-admpid": "307391" };
+      let tries = 0;
 
-  <!-- Если сети требуется явная инициализация — добавь здесь вызов их API (если он есть в доках). -->
+      function inject(){
+        tries++;
+        // Удаляем прежний <script>, если был
+        const old = document.getElementById("onclicka-loader");
+        if (old) old.remove();
+
+        const s = document.createElement("script");
+        s.id = "onclicka-loader";
+        s.src = SRC;
+        for (const k in ATTR) s.setAttribute(k, ATTR[k]);
+        s.onerror = onErr;
+        document.body.appendChild(s);
+
+        // Страховка: если сеть не инициализировалась за 2.5с — повторить
+        setTimeout(checkRendered, 2500);
+      }
+
+      function checkRendered(){
+        const slot = document.querySelector('[data-banner-id="6064015"]');
+        // Примитивная проверка «что-то отрисовали»
+        if (slot && slot.children.length > 0) return; // ок
+        if (tries < 3) return inject(); // до 3 попыток
+        // Фоллбэк: показать заглушку
+        document.getElementById("fallback").classList.remove("hidden");
+      }
+
+      function onErr(){
+        if (tries < 3) inject(); else document.getElementById("fallback").classList.remove("hidden");
+      }
+
+      // Запуск после DOMReady
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", inject, {once:true});
+      } else {
+        inject();
+      }
+    })();
+  </script>
 </body>
 </html>
